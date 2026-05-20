@@ -76,7 +76,7 @@
 
 <div class="panel">
   <h2>WebGIS LOD2 Bangunan</h2>
-  <p>Visualisasi 3D Berdasarkan Nilai Max Zonal Statistics</p>
+  <p>Visualisasi 3D Bangunan UPN Veteran Yogyakarta</p>
 </div>
 
 <div class="legend">
@@ -110,11 +110,7 @@
 //////////////////////////////////////////////////////////
 
 const map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://demotiles.maplibre.org/style.json',
-    center: [110.4095, -7.7625],
-    zoom: 18
-});
+  container: 'map',
 
   style: {
     version: 8,
@@ -142,15 +138,9 @@ const map = new maplibregl.Map({
 
       ortho: {
         type: 'raster',
-
-        //////////////////////////////////////////////////////
-        // GANTI DENGAN FOLDER TILE ORTHOPHOTO
-        //////////////////////////////////////////////////////
-
         tiles: [
           './tiles/{z}/{x}/{y}.png'
         ],
-
         tileSize: 256
       }
     },
@@ -183,14 +173,14 @@ const map = new maplibregl.Map({
   },
 
   //////////////////////////////////////////////////////
-  // GANTI KOORDINAT AREA KAMU
+  // KOORDINAT UPN VETERAN YOGYAKARTA KAMPUS 1
   //////////////////////////////////////////////////////
 
-  center: [110.3695, -7.7956],
+  center: [110.4095, -7.7627],
 
-  zoom: 17,
+  zoom: 18,
   pitch: 70,
-  bearing: -25,
+  bearing: -35,
 
   antialias: true
 });
@@ -200,6 +190,21 @@ const map = new maplibregl.Map({
 //////////////////////////////////////////////////////////
 
 map.addControl(new maplibregl.NavigationControl());
+
+//////////////////////////////////////////////////////////
+// LIGHTING / SHADOW EFFECT
+//////////////////////////////////////////////////////////
+
+map.on('style.load', () => {
+
+  map.setLight({
+    anchor: 'viewport',
+    color: '#ffffff',
+    intensity: 0.8,
+    position: [1.5, 90, 80]
+  });
+
+});
 
 //////////////////////////////////////////////////////////
 // LOAD DATA BANGUNAN
@@ -213,12 +218,38 @@ map.on('load', () => {
 
   map.addSource('bangunan', {
     type: 'geojson',
-
-    //////////////////////////////////////////////////////
-    // GANTI DENGAN FILE GEOJSON KAMU
-    //////////////////////////////////////////////////////
-
     data: './data/bangunan_lod2.geojson'
+  });
+
+  //////////////////////////////////////////////////////
+  // SHADOW LAYER
+  //////////////////////////////////////////////////////
+
+  map.addLayer({
+    id: 'bangunan-shadow',
+
+    type: 'fill-extrusion',
+
+    source: 'bangunan',
+
+    paint: {
+
+      'fill-extrusion-color': '#000000',
+
+      'fill-extrusion-height': [
+        '+',
+        ['get', '_max'],
+        0.5
+      ],
+
+      'fill-extrusion-base': 0,
+
+      'fill-extrusion-opacity': 0.15,
+
+      'fill-extrusion-translate': [2, 2],
+
+      'fill-extrusion-translate-anchor': 'viewport'
+    }
   });
 
   //////////////////////////////////////////////////////
@@ -235,7 +266,7 @@ map.on('load', () => {
     paint: {
 
       //////////////////////////////////////////////////////
-      // WARNA BERDASARKAN NILAI _max
+      // WARNA BERDASARKAN TINGGI
       //////////////////////////////////////////////////////
 
       'fill-extrusion-color': [
@@ -251,7 +282,7 @@ map.on('load', () => {
       ],
 
       //////////////////////////////////////////////////////
-      // TINGGI DARI FIELD _max
+      // TINGGI GEDUNG
       //////////////////////////////////////////////////////
 
       'fill-extrusion-height': [
@@ -266,7 +297,7 @@ map.on('load', () => {
       'fill-extrusion-base': 0,
 
       //////////////////////////////////////////////////////
-      // TRANSPARANSI
+      // OPACITY
       //////////////////////////////////////////////////////
 
       'fill-extrusion-opacity': 0.95
@@ -286,8 +317,7 @@ map.on('load', () => {
       .setHTML(`
         <h3>Informasi Bangunan</h3>
 
-        <b>Nama Objek:</b> ${p.nama_objek || '-'} <br>
-        <b>Jenis:</b> ${p.jenis_obje || '-'} <br>
+        <b>Nama:</b> ${p.nama_objek || p.kode_objek || '-'} <br>
         <b>Luas:</b> ${p.luas_m2 || '-'} m² <br>
         <b>Tinggi:</b> ${Number(p._max).toFixed(2)} meter
       `)
