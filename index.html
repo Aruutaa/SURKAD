@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>WebGIS LOD2 Bangunan</title>
+
+  <!-- MAPLIBRE -->
+  <link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet"/>
+  <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .panel {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      z-index: 999;
+      background: rgba(255,255,255,0.95);
+      padding: 14px 18px;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .panel p {
+      margin: 5px 0 0 0;
+      font-size: 13px;
+    }
+
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 15px;
+      z-index: 999;
+      background: rgba(255,255,255,0.95);
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.2);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .legend-color {
+      width: 22px;
+      height: 22px;
+      margin-right: 8px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+  <h2>WebGIS LOD2 Bangunan</h2>
+  <p>Visualisasi 3D Berdasarkan Nilai Max Zonal Statistics</p>
+</div>
+
+<div class="legend">
+  <b>Ketinggian Bangunan</b>
+
+  <div class="legend-item">
+    <div class="legend-color" style="background:#ffffb2"></div>
+    <span>0 - 10 m</span>
+  </div>
+
+  <div class="legend-item">
+    <div class="legend-color" style="background:#fecc5c"></div>
+    <span>10 - 20 m</span>
+  </div>
+
+  <div class="legend-item">
+    <div class="legend-color" style="background:#fd8d3c"></div>
+    <span>20 - 40 m</span>
+  </div>
+
+  <div class="legend-item">
+    <div class="legend-color" style="background:#e31a1c"></div>
+    <span>> 40 m</span>
+  </div>
+</div>
+
+<script>
+
+//////////////////////////////////////////////////////////
+// MEMBUAT MAP
+//////////////////////////////////////////////////////////
+
+const map = new maplibregl.Map({
+  container: 'map',
+
+  style: {
+    version: 8,
+
+    sources: {
+
+      //////////////////////////////////////////////////////
+      // BASEMAP OSM
+      //////////////////////////////////////////////////////
+
+      osm: {
+        type: 'raster',
+        tiles: [
+          'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        ],
+        tileSize: 256,
+        attribution: '© OpenStreetMap'
+      },
+
+      //////////////////////////////////////////////////////
+      // ORTHOPHOTO
+      //////////////////////////////////////////////////////
+
+      ortho: {
+        type: 'raster',
+
+        //////////////////////////////////////////////////////
+        // GANTI DENGAN FOLDER TILE ORTHOPHOTO
+        //////////////////////////////////////////////////////
+
+        tiles: [
+          './tiles/{z}/{x}/{y}.png'
+        ],
+
+        tileSize: 256
+      }
+    },
+
+    layers: [
+
+      //////////////////////////////////////////////////////
+      // OSM
+      //////////////////////////////////////////////////////
+
+      {
+        id: 'osm',
+        type: 'raster',
+        source: 'osm'
+      },
+
+      //////////////////////////////////////////////////////
+      // ORTHOPHOTO
+      //////////////////////////////////////////////////////
+
+      {
+        id: 'ortho',
+        type: 'raster',
+        source: 'ortho',
+        paint: {
+          'raster-opacity': 0.95
+        }
+      }
+    ]
+  },
+
+  //////////////////////////////////////////////////////
+  // GANTI KOORDINAT AREA KAMU
+  //////////////////////////////////////////////////////
+
+  center: [110.3695, -7.7956],
+
+  zoom: 17,
+  pitch: 70,
+  bearing: -25,
+
+  antialias: true
+});
+
+//////////////////////////////////////////////////////////
+// CONTROL NAVIGASI
+//////////////////////////////////////////////////////////
+
+map.addControl(new maplibregl.NavigationControl());
+
+//////////////////////////////////////////////////////////
+// LOAD DATA BANGUNAN
+//////////////////////////////////////////////////////////
+
+map.on('load', () => {
+
+  //////////////////////////////////////////////////////
+  // LOAD GEOJSON
+  //////////////////////////////////////////////////////
+
+  map.addSource('bangunan', {
+    type: 'geojson',
+
+    //////////////////////////////////////////////////////
+    // GANTI DENGAN FILE GEOJSON KAMU
+    //////////////////////////////////////////////////////
+
+    data: './data/bangunan_lod2.geojson'
+  });
+
+  //////////////////////////////////////////////////////
+  // LAYER 3D BUILDING
+  //////////////////////////////////////////////////////
+
+  map.addLayer({
+    id: 'bangunan-3d',
+
+    type: 'fill-extrusion',
+
+    source: 'bangunan',
+
+    paint: {
+
+      //////////////////////////////////////////////////////
+      // WARNA BERDASARKAN NILAI _max
+      //////////////////////////////////////////////////////
+
+      'fill-extrusion-color': [
+
+        'interpolate',
+        ['linear'],
+        ['get', '_max'],
+
+        0, '#ffffb2',
+        10, '#fecc5c',
+        20, '#fd8d3c',
+        40, '#e31a1c'
+      ],
+
+      //////////////////////////////////////////////////////
+      // TINGGI DARI FIELD _max
+      //////////////////////////////////////////////////////
+
+      'fill-extrusion-height': [
+        'get',
+        '_max'
+      ],
+
+      //////////////////////////////////////////////////////
+      // BASE HEIGHT
+      //////////////////////////////////////////////////////
+
+      'fill-extrusion-base': 0,
+
+      //////////////////////////////////////////////////////
+      // TRANSPARANSI
+      //////////////////////////////////////////////////////
+
+      'fill-extrusion-opacity': 0.95
+    }
+  });
+
+  //////////////////////////////////////////////////////
+  // POPUP INFORMASI
+  //////////////////////////////////////////////////////
+
+  map.on('click', 'bangunan-3d', (e) => {
+
+    const p = e.features[0].properties;
+
+    new maplibregl.Popup()
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <h3>Informasi Bangunan</h3>
+
+        <b>Nama Objek:</b> ${p.nama_objek || '-'} <br>
+        <b>Jenis:</b> ${p.jenis_obje || '-'} <br>
+        <b>Luas:</b> ${p.luas_m2 || '-'} m² <br>
+        <b>Tinggi:</b> ${Number(p._max).toFixed(2)} meter
+      `)
+      .addTo(map);
+  });
+
+  //////////////////////////////////////////////////////
+  // CURSOR POINTER
+  //////////////////////////////////////////////////////
+
+  map.on('mouseenter', 'bangunan-3d', () => {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  map.on('mouseleave', 'bangunan-3d', () => {
+    map.getCanvas().style.cursor = '';
+  });
+
+});
+
+</script>
+
+</body>
+</html>
