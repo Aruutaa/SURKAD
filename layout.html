@@ -1,3 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Peta Layout</title>
+
+<link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet"/>
+<script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+
+<style>
+
+/* RESET */
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+}
+
+/* FRAME */
+.container {
+  position:relative;
+  width:95%;
+  height:95vh;
+  margin:auto;
+  background:white;
+  border:3px solid black;
+}
+
+/* JUDUL */
+.title {
+  text-align:center;
+  font-weight:bold;
+  font-size:20px;
+  padding:10px;
+  border-bottom:2px solid black;
+}
+
+/* MAP */
+#map {
+  position:absolute;
+  top:70px;
+  bottom:70px;
+  left:200px;
+  right:200px;
+  border:2px solid black;
+}
+
+/* LEGENDA */
+.legend {
+  position:absolute;
+  top:90px;
+  left:20px;
+  width:150px;
+  background:white;
+  border:1px solid black;
+  padding:10px;
+  font-size:12px;
+}
+
+.legend div {
+  display:flex;
+  align-items:center;
+  margin-top:5px;
+}
+
+.color {
+  width:20px;
+  height:20px;
+  margin-right:5px;
+}
+
+/* NORTH */
+.north {
+  position:absolute;
+  top:100px;
+  right:40px;
+  text-align:center;
+  font-size:18px;
+  font-weight:bold;
+}
+
+/* SCALE */
+.scale {
+  position:absolute;
+  bottom:100px;
+  right:40px;
+  background:white;
+  border:1px solid black;
+  padding:5px;
+  font-size:12px;
+}
+
+.bar {
+  width:120px;
+  height:10px;
+  background:black;
+  margin:5px 0;
+}
+
+/* INSET */
+#inset {
+  position:absolute;
+  bottom:100px;
+  left:20px;
+  width:150px;
+  height:120px;
+  border:1px solid black;
+}
+
+/* FOOTER */
+.footer {
+  position:absolute;
+  bottom:0;
+  width:100%;
+  text-align:center;
+  font-size:12px;
+  border-top:2px solid black;
+  padding:5px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="title">
+    PETA 3D BANGUNAN UPN<br>
+    VETERAN YOGYAKARTA
+  </div>
+
+  <div id="map"></div>
+
+  <div class="legend">
+    <b>Legenda</b>
+    <div><div class="color" style="background:green"></div>Rendah</div>
+    <div><div class="color" style="background:yellow"></div>Menengah</div>
+    <div><div class="color" style="background:red"></div>Tinggi</div>
+  </div>
+
+  <div class="north">
+    ↑<br>Utara
+  </div>
+
+  <div class="scale">
+    Skala 1 : 250.000
+    <div class="bar"></div>
+    0 — 5 km
+  </div>
+
+  <div id="inset"></div>
+
+  <div class="footer">
+    Program Studi Teknik Geomatika - UPN Veteran Yogyakarta<br>
+    Sistem Koordinat: WGS 84 (EPSG:4326)
+  </div>
+
+</div>
+
 <script>
 
 /* MAP UTAMA */
@@ -19,10 +181,10 @@ const map = new maplibregl.Map({
     }]
   },
 
-  center:[110.409, -7.758], // 📍 UPN Jogja
+  center:[110.409, -7.758], // UPN
   zoom:17,
-  pitch:60,   // 🔥 efek 3D
-  bearing:-30 // 🔥 biar miring keren
+  pitch:60,
+  bearing:-30
 });
 
 map.addControl(new maplibregl.NavigationControl());
@@ -30,8 +192,45 @@ map.addControl(new maplibregl.NavigationControl());
 /* LOAD */
 map.on('load', () => {
 
+  /* GRID (TETAP ADA) */
+  for(let i=105; i<=110; i++){
+    map.addLayer({
+      id:'lon'+i,
+      type:'line',
+      source:{
+        type:'geojson',
+        data:{
+          type:'Feature',
+          geometry:{
+            type:'LineString',
+            coordinates:[[i,-8],[i,-5]]
+          }
+        }
+      },
+      paint:{ 'line-color':'black','line-width':0.5 }
+    });
+  }
+
+  for(let j=-8; j<=-5; j++){
+    map.addLayer({
+      id:'lat'+j,
+      type:'line',
+      source:{
+        type:'geojson',
+        data:{
+          type:'Feature',
+          geometry:{
+            type:'LineString',
+            coordinates:[[105,j],[110,j]]
+          }
+        }
+      },
+      paint:{ 'line-color':'black','line-width':0.5 }
+    });
+  }
+
   //////////////////////////////////////////////////
-  // 3D BUILDING
+  // 3D BUILDING (TAMBAHAN)
   //////////////////////////////////////////////////
 
   map.addSource('buildings', {
@@ -44,32 +243,17 @@ map.on('load', () => {
     source: 'buildings',
     'source-layer': 'building',
     type: 'fill-extrusion',
-
     paint: {
       'fill-extrusion-color': '#999',
-
-      'fill-extrusion-height': [
-        "interpolate", ["linear"], ["zoom"],
-        15, 0,
-        17, ["get", "height"]
-      ],
-
-      'fill-extrusion-base': [
-        "interpolate", ["linear"], ["zoom"],
-        15, 0,
-        17, ["get", "min_height"]
-      ],
-
-      'fill-extrusion-opacity': 0.9
+      'fill-extrusion-height': ['get', 'height'],
+      'fill-extrusion-base': ['get', 'min_height'],
+      'fill-extrusion-opacity': 0.8
     }
   });
 
 });
 
-//////////////////////////////////////////////////
-// INSET
-//////////////////////////////////////////////////
-
+/* INSET */
 const inset = new maplibregl.Map({
   container:'inset',
   style:{
@@ -93,3 +277,6 @@ const inset = new maplibregl.Map({
 });
 
 </script>
+
+</body>
+</html>
