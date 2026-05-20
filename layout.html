@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Layout Peta</title>
+
+<link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet"/>
+<script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+
+<style>
+
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:white;
+}
+
+#map {
+  position:absolute;
+  top:80px;
+  bottom:80px;
+  left:80px;
+  right:80px;
+  border:2px solid black;
+}
+
+//////////////////////////////////////////////////
+// JUDUL
+//////////////////////////////////////////////////
+
+.title {
+  position:absolute;
+  top:10px;
+  width:100%;
+  text-align:center;
+  font-weight:bold;
+  font-size:18px;
+}
+
+//////////////////////////////////////////////////
+// LEGENDA
+//////////////////////////////////////////////////
+
+.legend {
+  position:absolute;
+  bottom:100px;
+  left:90px;
+  background:white;
+  padding:10px;
+  border:1px solid black;
+  font-size:12px;
+}
+
+.legend div {
+  display:flex;
+  align-items:center;
+}
+
+.color {
+  width:20px;
+  height:20px;
+  margin-right:5px;
+}
+
+//////////////////////////////////////////////////
+// NORTH ARROW
+//////////////////////////////////////////////////
+
+.north {
+  position:absolute;
+  top:120px;
+  right:100px;
+  text-align:center;
+}
+
+//////////////////////////////////////////////////
+// SCALE BAR
+//////////////////////////////////////////////////
+
+.scale-bar {
+  position:absolute;
+  bottom:100px;
+  right:120px;
+  background:white;
+  padding:5px;
+  border:1px solid black;
+  font-size:12px;
+}
+
+.bar {
+  width:100px;
+  height:10px;
+  background:black;
+  margin:5px 0;
+}
+
+//////////////////////////////////////////////////
+// GRID TEXT (SIMPLE)
+//////////////////////////////////////////////////
+
+.grid-label {
+  position:absolute;
+  font-size:10px;
+}
+
+//////////////////////////////////////////////////
+// INSET MAP
+//////////////////////////////////////////////////
+
+.inset {
+  position:absolute;
+  top:350px;
+  right:100px;
+  width:200px;
+  height:150px;
+  border:1px solid black;
+}
+
+//////////////////////////////////////////////////
+// FOOTER INFO
+//////////////////////////////////////////////////
+
+.footer {
+  position:absolute;
+  bottom:10px;
+  width:100%;
+  text-align:center;
+  font-size:12px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="title">
+PETA POTENSI GERAKAN TANAH <br>
+PROVINSI JAWA BARAT
+</div>
+
+<div id="map"></div>
+
+//////////////////////////////////////////////////
+// LEGENDA
+//////////////////////////////////////////////////
+
+<div class="legend">
+<b>Legenda</b><br>
+
+<div><div class="color" style="background:green"></div>Rendah</div>
+<div><div class="color" style="background:yellow"></div>Menengah</div>
+<div><div class="color" style="background:red"></div>Tinggi</div>
+
+</div>
+
+//////////////////////////////////////////////////
+// NORTH ARROW
+//////////////////////////////////////////////////
+
+<div class="north">
+↑<br>Utara
+</div>
+
+//////////////////////////////////////////////////
+// SCALE BAR + NUMERIC
+//////////////////////////////////////////////////
+
+<div class="scale-bar">
+Skala 1 : 250.000
+<div class="bar"></div>
+0 --- 5 km
+</div>
+
+//////////////////////////////////////////////////
+// INSET
+//////////////////////////////////////////////////
+
+<div id="inset" class="inset"></div>
+
+//////////////////////////////////////////////////
+// FOOTER
+//////////////////////////////////////////////////
+
+<div class="footer">
+Program Studi Teknik Geomatika - Jurusan Teknik Geologi <br>
+Fakultas Teknologi Mineral dan Energi <br>
+Universitas Pembangunan Veteran Yogyakarta <br>
+Sistem Koordinat: WGS 84 (EPSG:4326)
+</div>
+
+<script>
+
+//////////////////////////////////////////////////
+// MAIN MAP
+//////////////////////////////////////////////////
+
+const map = new maplibregl.Map({
+  container: 'map',
+
+  style: {
+    version:8,
+    sources:{
+      osm:{
+        type:'raster',
+        tiles:[
+          'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'
+        ],
+        tileSize:256
+      }
+    },
+    layers:[{
+      id:'osm',
+      type:'raster',
+      source:'osm'
+    }]
+  },
+
+  center:[107.5, -6.9],
+  zoom:7
+});
+
+map.addControl(new maplibregl.NavigationControl());
+
+//////////////////////////////////////////////////
+// GRID (GRATICULE SIMPLE)
+//////////////////////////////////////////////////
+
+map.on('load', () => {
+
+  for(let i=105; i<=110; i++){
+    map.addLayer({
+      id:'lon'+i,
+      type:'line',
+      source:{
+        type:'geojson',
+        data:{
+          type:'Feature',
+          geometry:{
+            type:'LineString',
+            coordinates:[
+              [i,-8],
+              [i,-5]
+            ]
+          }
+        }
+      },
+      paint:{
+        'line-color':'black',
+        'line-width':0.5
+      }
+    });
+  }
+
+  for(let j=-8; j<=-5; j++){
+    map.addLayer({
+      id:'lat'+j,
+      type:'line',
+      source:{
+        type:'geojson',
+        data:{
+          type:'Feature',
+          geometry:{
+            type:'LineString',
+            coordinates:[
+              [105,j],
+              [110,j]
+            ]
+          }
+        }
+      },
+      paint:{
+        'line-color':'black',
+        'line-width':0.5
+      }
+    });
+  }
+
+});
+
+//////////////////////////////////////////////////
+// INSET MAP
+//////////////////////////////////////////////////
+
+const inset = new maplibregl.Map({
+  container:'inset',
+
+  style:{
+    version:8,
+    sources:{
+      osm:{
+        type:'raster',
+        tiles:['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+        tileSize:256
+      }
+    },
+    layers:[{
+      id:'osm',
+      type:'raster',
+      source:'osm'
+    }]
+  },
+
+  center:[115,-2],
+  zoom:4,
+  interactive:false
+});
+
+</script>
+
+</body>
+</html>
