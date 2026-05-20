@@ -110,7 +110,11 @@
 //////////////////////////////////////////////////////////
 
 const map = new maplibregl.Map({
-  container: 'map',
+    container: 'map',
+    style: 'https://demotiles.maplibre.org/style.json',
+    center: [110.4095, -7.7625],
+    zoom: 18
+});
 
   style: {
     version: 8,
