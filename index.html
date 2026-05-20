@@ -221,36 +221,23 @@ map.on('load', () => {
     data: './data/bangunan_lod2.geojson'
   });
 
-  //////////////////////////////////////////////////////
-  // SHADOW LAYER
-  //////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////
+// LIGHTING REALISTIS
+//////////////////////////////////////////////////////////
 
-  map.addLayer({
-    id: 'bangunan-shadow',
+map.on('style.load', () => {
 
-    type: 'fill-extrusion',
+  map.setLight({
+    anchor: 'map',
 
-    source: 'bangunan',
+    color: '#ffffff',
 
-    paint: {
+    intensity: 1.2,
 
-      'fill-extrusion-color': '#000000',
-
-      'fill-extrusion-height': [
-        '+',
-        ['get', '_max'],
-        0.5
-      ],
-
-      'fill-extrusion-base': 0,
-
-      'fill-extrusion-opacity': 0.15,
-
-      'fill-extrusion-translate': [2, 2],
-
-      'fill-extrusion-translate-anchor': 'viewport'
-    }
+    position: [1.5, 210, 35]
   });
+
+});
 
   //////////////////////////////////////////////////////
   // LAYER 3D BUILDING
